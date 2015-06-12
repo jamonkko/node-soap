@@ -33,7 +33,13 @@ Install with [npm](http://github.com/isaacs/npm):
   });
 ```
 
-Within the options object you may provide an `endpoint` property in case you want to override the SOAP service's host specified in the `.wsdl` file.
+#### Options
+
+The `options` argument allows you to customize the client with the following properties:
+
+- endpoint: to override the SOAP service's host specified in the `.wsdl` file.
+- request: to override the [request](https://github.com/request/request) module.
+- httpClient: to provide your own http client that implements `request(rurl, data, callback, exheaders, exoptions)`.
 
 ### soap.listen(*server*, *path*, *services*, *wsdl*) - create a new SOAP server that listens on *path* and provides *services*.
 *wsdl* is an xml string that defines the service.
@@ -86,6 +92,18 @@ along with data.
     // type is 'received' or 'replied'
   };
 ```
+
+### Server Events
+
+Server instances emit the following events:
+
+* request - Emitted for every received messages.
+  The signature of the callback is `function(request, methodName)`.
+* headers - Emitted when the SOAP Headers are not empty.
+  The signature of the callback is `function(headers, methodName)`.
+
+The sequence order of the calls is `request`, `headers` and then the dedicated
+service method.
 
 ### SOAP Fault
 
@@ -271,6 +289,9 @@ entire Soap request (Envelope) including headers.
 Soap body contents. Useful if you don't want to log /store Soap headers.
 * soapError - Emitted when an erroneous response is received.
   Useful if you want to globally log errors.
+* response - Emitted after a response is received. The event handler receives
+the entire response body. This is emitted for all responses (both success and
+errors).
 
 
 ## WSSecurity

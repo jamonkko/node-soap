@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var assert = require('assert');
 var fs   = require('fs');
@@ -10,7 +10,6 @@ var soap = require('../');
 var WSSecurity = require('../lib/security/WSSecurity');
 var server;
 var port;
-var endpoint;
 var tests = glob.sync('./request-response-samples/*', {cwd:__dirname})
   .map(function(node){return path.resolve(__dirname, node);})
   .filter(function(node){return fs.statSync(node).isDirectory();});
@@ -35,31 +34,6 @@ var requestContext = {
       requestContext.responseToSend = null;
     });
   }
-};
-
-var origRandom = Math.random;
-module.exports = {
-  before:function(done){
-    timekeeper.freeze(Date.parse('2014-10-12T01:02:03Z'));
-    Math.random = function() { return 1; };
-    server = http.createServer(requestContext.requestHandler);
-    server.listen(0, function(e){
-      if(e)return done(e);
-      port = server.address().port;
-      done();
-    });
-  },
-  beforeEach:function(){
-    requestContext.expectedRequest = null;
-    requestContext.responseToSend = null;
-    requestContext.doneHandler = null;
-  },
-  after:function(){
-    timekeeper.reset();
-    Math.random = origRandom;
-    server.close();
-  },
-  'Request Response Sampling':suite
 };
 
 tests.forEach(function(test){
@@ -97,11 +71,11 @@ tests.forEach(function(test){
   else responseSoapHeaderJSON = null;
 
   //requestXML is optional
-  if(fs.existsSync(requestXML))requestXML = ""+fs.readFileSync(requestXML);
+  if(fs.existsSync(requestXML))requestXML = ''+fs.readFileSync(requestXML);
   else requestXML = null;
 
   //responseXML is optional
-  if(fs.existsSync(responseXML))responseXML = ""+fs.readFileSync(responseXML);
+  if(fs.existsSync(responseXML))responseXML = ''+fs.readFileSync(responseXML);
   else responseXML = null;
 
   //requestJSON is required as node-soap will expect a request object anyway
@@ -120,8 +94,8 @@ tests.forEach(function(test){
 
 function generateTest(name, methodName, wsdlPath, headerJSON, securityJSON, requestXML, requestJSON, responseXML, responseJSON, responseSoapHeaderJSON, wsdlOptions, options){
   suite[name] = function(done){
-    if(requestXML)requestContext.expectedRequest = requestXML;
-    if(responseXML)requestContext.responseToSend = responseXML;
+    if(requestXML) requestContext.expectedRequest = requestXML;
+    if(responseXML) requestContext.responseToSend = responseXML;
     requestContext.doneHandler = done;
     soap.createClient(wsdlPath, wsdlOptions, function(err, client){
       if (headerJSON) {
@@ -149,3 +123,34 @@ function generateTest(name, methodName, wsdlPath, headerJSON, securityJSON, requ
     }, 'http://localhost:'+port+'/Message/Message.dll?Handler=Default');
   };
 }
+
+describe('Request Response Sampling', function() {
+  var origRandom = Math.random;
+
+  before(function(done){
+    timekeeper.freeze(Date.parse('2014-10-12T01:02:03Z'));
+    Math.random = function() { return 1; };
+    server = http.createServer(requestContext.requestHandler);
+    server.listen(0, function(e){
+      if(e)return done(e);
+      port = server.address().port;
+      done();
+    });
+  });
+
+  beforeEach(function(){
+    requestContext.expectedRequest = null;
+    requestContext.responseToSend = null;
+    requestContext.doneHandler = null;
+  });
+
+  after(function(){
+    timekeeper.reset();
+    Math.random = origRandom;
+    server.close();
+  });
+
+  Object.keys(suite).map(function(key) {
+    it(key, suite[key]);
+  });
+});
